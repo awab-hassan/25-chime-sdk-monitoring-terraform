@@ -1,0 +1,8 @@
+# Terraform commands
+terraform apply -auto-approve (apply configuration)
+terraform destroy -auto-approve (to remove infrastructure)
+
+# Chime commands
+aws chime list-app-instances (list all app instances)
+aws chime-sdk-identity create-app-instance-user --app-instance-user-id chime-admin --name chime-admin --app-instance-arn arn:aws:chime:us-east-1:701253760804:app-instance/416d62c3-3622-43e7-9d78-019fa7a80fe7 --region us-east-1 (to create a user in chime instance)
+aws chime delete-app-instance --app-instance-arn YOUR_INSTANCE_ARN_HERE (to delete chime instance)
