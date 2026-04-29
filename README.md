@@ -1,42 +1,53 @@
-### Configure AWS Provider:
+# Project # 25 - chime-sdk-monitoring-terraform
 
-Sets the desired region (replace us-east-1 with your preference).
+Terraform module that provisions baseline AWS infrastructure for working with the Amazon Chime SDK: an IAM role for Chime SDK service access, an SNS topic for alerts, two CloudWatch alarms (4xx errors and Chime API usage), and a placeholder API Gateway HTTP API.
 
-### IAM Role and Policy:
+Intended as a starting scaffold. The API Gateway has no routes or integrations defined yet, and the IAM policy is intentionally broad. Both should be tightened before production use.
 
-Creates an IAM role ChimeSDKRole for the Chime SDK.
+## What It Provisions
 
-### Defines a policy ChimeSDKPolicy granting permissions:
-chime:* for broad Chime SDK access (consider individual actions for better control).
-logs:CreateLogGroup, CreateLogStream, PutLogEvents for logging.
+- **IAM role and policy** (`ChimeSDKRole` / `ChimeSDKPolicy`) — grants `chime:*` for Chime SDK access and CloudWatch Logs permissions
+- **SNS topic** (`ChimeSDKAlerts`) — receives alarm notifications. Subscriptions (email, Slack, PagerDuty) are configured separately
+- **CloudWatch alarm: `unauthorized_access_alarm`** — fires when `AWS/ApiGateway 4XXError` >= 5 over a 5-minute period
+- **CloudWatch alarm: `usage_limit_alarm`** — fires when the configured Chime API call rate metric >= 1000 over a 5-minute period
+- **API Gateway HTTP API** (`chime_api`) — empty HTTP API with an auto-deploy stage (`chime_stage`)
 
-### Attach Policy to Role:
+## Stack
 
-Attaches the ChimeSDKPolicy to the ChimeSDKRole.
+Terraform · AWS Chime SDK · IAM · SNS · CloudWatch Alarms · API Gateway v2 (HTTP)
 
-### SNS Topic for Notifications:
+## Repository Layout
 
-Creates an SNS topic ChimeSDKAlerts for receiving notifications.
+```
+chime-sdk-monitoring-terraform/
+├── main.tf
+├── .gitignore
+└── README.md
+```
 
-### CloudWatch Alarm for Unauthorized Access:
+## Outputs
 
-Creates a CloudWatch alarm unauthorized_access_alarm:
-Monitors the 4XXError metric (errors) in the AWS/ApiGateway namespace.
-Triggers an alarm if the sum of errors over 5 minutes (period) is greater than or equal to 5 (threshold).
-Sends notification to the ChimeSDKAlerts topic.
-### API Gateway for Chime SDK Integration:
+- `chime_api_endpoint` — invoke URL for the API Gateway
+- `sns_topic_arn` — ARN of the alert SNS topic
+- `chime_sdk_role_arn` — ARN of the Chime SDK IAM role
 
-Creates an API Gateway v2 API chime_api with the HTTP protocol type.
-Creates a stage chime_stage for deployment with auto-deployment enabled.
-### CloudWatch Alarm for Usage Limits:
+## Prerequisites
 
-Creates a CloudWatch alarm usage_limit_alarm:
-Monitors the ApiCallRateExceeded metric in the AWS/Chime namespace.
-Triggers an alarm if the sum of API calls over 5 minutes (period) is greater than or equal to 1000 (threshold).
-Sends notification to the ChimeSDKAlerts topic.
+- Terraform >= 1.x
+- AWS credentials with permissions for IAM, SNS, CloudWatch, and API Gateway
 
-### Outputs:
-Provides information about the infrastructure:
-- chime_api_endpoint: URL for the Chime SDK API.
-- sns_topic_arn: ARN of the SNS topic for alerts.
-- chime_sdk_role_arn: ARN of the IAM role for Chime SDK.
+## Deployment
+
+```bash
+terraform init
+terraform plan
+terraform apply
+```
+
+## Notes
+
+- The IAM policy uses `chime:*`. Replace with the specific actions actually needed before production use.
+- `unauthorized_access_alarm` watches the API Gateway `4XXError` metric, which counts all 4xx responses (not only 401/403). The alarm name is descriptive, not metric-accurate. Rename or refine the metric filter if true unauthorized-access detection is required.
+- The Chime API rate metric used by `usage_limit_alarm` should be verified against the current Amazon Chime SDK CloudWatch metric list before relying on it. Metric names in the `AWS/Chime` namespace have changed over time.
+- The HTTP API is provisioned without routes or integrations. Add `aws_apigatewayv2_route` and `aws_apigatewayv2_integration` resources before the API can serve traffic.
+- The default region is `us-east-1`. Override via the AWS provider block or environment variable.
