@@ -1,6 +1,6 @@
 # Terraform commands
 terraform apply -auto-approve (apply configuration)
-terraform destroy -auto-approve (to remove infrastructure)
+terraform destroy -auto-approve (to remove infrastructure stuff)
 
 # Chime commands
 aws chime list-app-instances (list all app instances)
